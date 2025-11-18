@@ -5,11 +5,17 @@ install:
 dev:
 	make dev-backend & make dev-frontend
 
+dev-angular:
+	make dev-backend & make dev-frontend-angular
+
 dev-backend:
 	uv run adk api_server app --allow_origins="*"
 
 dev-frontend:
 	npm --prefix frontend run dev
+
+dev-frontend-angular:
+	ng serve
 
 playground:
 	uv run adk web --port 8501

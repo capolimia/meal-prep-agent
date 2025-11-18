@@ -1,0 +1,148 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { ToolbarModule } from 'primeng/toolbar';
+import { FluidModule } from 'primeng/fluid';
+import { v4 as uuidv4 } from 'uuid';
+
+@Component({
+  selector: 'app-chat-window',
+  imports: [
+    CommonModule,
+    FormsModule,
+    InputTextModule,
+    ButtonModule,
+    ToolbarModule,
+    FluidModule
+  ],
+  templateUrl: './chat-window.html',
+  styleUrl: './chat-window.css',
+})
+export class ChatWindow {
+  private baseUrl = 'http://localhost:8000';
+  private userId: string | null = null;
+  private sessionId: string | null = null;
+  
+  currentMessage = '';
+  aiResponse = '';
+  isLoading = false;
+
+  async createSession() {
+    const sessionId = uuidv4();
+    const response = await fetch(
+      `${this.baseUrl}/apps/app/users/u_999/sessions/${sessionId}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+    );
+    const data = await response.json();
+    this.userId = data.userId;
+    this.sessionId = data.id;
+    return data;
+  }
+
+  async handleSendMessage() {
+    if (!this.currentMessage.trim()) return;
+    
+    this.isLoading = true;
+    this.aiResponse = '';
+    const userMessage = this.currentMessage;
+    this.currentMessage = ''; // Clear input immediately
+    
+    try {
+      await this.sendMessageToApi(userMessage, (chunk) => {
+        this.aiResponse += chunk;
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      this.aiResponse = `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`;
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async sendMessageToApi(query: string, onChunk: (text: string) => void) {
+    if (!this.sessionId) {
+      console.log('No session, creating one...');
+      await this.createSession();
+    }
+
+    console.log('Sending message:', {
+      appName: 'app',
+      userId: this.userId,
+      sessionId: this.sessionId,
+      message: query
+    });
+
+    const requestBody = {
+      appName: 'app',
+      userId: this.userId,
+      sessionId: this.sessionId,
+      newMessage: { 
+        parts: [{ text: query }], 
+        role: 'user' 
+      },
+      streaming: false
+    };
+
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+    const response = await fetch(`${this.baseUrl}/run_sse`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API error:', response.status, errorText);
+      throw new Error(`API error: ${response.status} - ${errorText}`);
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+          try {
+            const jsonStr = line.substring(5).trim();
+            if (!jsonStr) continue;
+            
+            const data = JSON.parse(jsonStr);
+            console.log('SSE event:', data);
+            
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            
+            if (data.content?.parts) {
+              const text = data.content.parts
+                .filter((p: any) => p.text)
+                .map((p: any) => p.text)
+                .join(' ');
+              if (text) {
+                onChunk(text);
+              }
+            }
+          } catch (parseError) {
+            console.error('Error parsing SSE data:', parseError, line);
+          }
+        }
+      }
+    }
+  }
+}
