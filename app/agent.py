@@ -18,11 +18,15 @@ from zoneinfo import ZoneInfo
 
 import google.auth
 from google import adk
+from google.adk import Runner
 from google.adk.agents import Agent
 from google.adk.apps.app import App
 from google.adk.memory import VertexAiMemoryBankService
-from google.adk.sessions import VertexAiSessionService
+from google.adk.plugins import logging_plugin
+from google.adk.sessions import VertexAiSessionService, InMemorySessionService
 from google.adk.tools import AgentTool, google_search
+
+from app.logging_plugin import LoggingPlugin
 
 _, project_id = google.auth.default()
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
@@ -69,9 +73,12 @@ async def auto_save_session_to_memory_callback(callback_context):
 recipe_search_agent = Agent(
     name="recipe_search_agent",
     model="gemini-2.5-flash",
-    instruction="You are a helpful AI assistant designed to use the google_search tool to find recipies on the web. If any dietary restrictions are specified, you MUST consider those requirements, "
-                "and return ONLY recipies that fit the dietary restrictions."
-                "Include the links to the found recipes in your response.",
+    instruction="You are a helpful AI assistant designed to use the google_search tool to find "
+                "recipies for breakfast, lunch, and dinner on the web."
+                "If any dietary restrictions are specified, you MUST consider those requirements, "
+                "and return ONLY recipies that fit the dietary restrictions. "
+                "ONLY Return recipes that are sourced from websites that contain a full recipe. "
+                "Include the links to the recipes found in your response.",
     tools=[google_search],
 )
 
@@ -80,12 +87,15 @@ meal_prep_agent = Agent(
     name="meal_prep_agent",
     model="gemini-2.5-flash",
     instruction="You are a helpful AI assistant designed to create a meal plan for the user."
-                "You must ALWAYS ask the user for dietary restrictions if they did not specify." 
-                "Then call the recipe-search-agent to get recipes with those specifications."
-                "Then, generate a meal plan based on the day of the week, starting with the current weekday."
+                "You must ALWAYS ask the user for dietary restrictions if they did not specify."
+                "Then call the recipe_search_agent to get recipes with those specifications."
+                "Then, generate a meal plan for each meal (breakfast, lunch, and dinner unless specified by user)"
+                " based on the day of the week, starting with the current weekday."
                 "You can find the current day of the week using the get_day_of_week tool."
-                "Share your findings with the user.",
-    tools=[AgentTool(recipe_search_agent), get_day_of_week, adk.tools.preload_memory_tool.PreloadMemoryTool()],
+                "Share your findings with the user, including the links provided from the recipe_search_agent, "
+                "with the response in markdown format."
+                "DO NOT provide recipes without internet links included.",
+    tools=[AgentTool(recipe_search_agent), get_day_of_week, adk.tools.preload_memory_tool.PreloadMemoryTool(),],
     after_agent_callback=auto_save_session_to_memory_callback,
 )
 
@@ -98,4 +108,4 @@ memory_service = VertexAiMemoryBankService(
     agent_engine_id=agent_engine_id, # Replace with your Agent Engine ID
 )
 
-app = App(root_agent=meal_prep_agent, name="app")
+app = App(root_agent=meal_prep_agent, name="app", plugins=[LoggingPlugin()])
