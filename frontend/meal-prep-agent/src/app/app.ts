@@ -4,6 +4,10 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ToolbarModule } from 'primeng/toolbar';
 import { FluidModule } from 'primeng/fluid';
 import { RouterLink, RouterOutlet } from '@angular/router';
+import { ChatWindow } from "./features/chat-window/chat-window";
+import { RecipePlan } from "./features/recipe-plan/recipe-plan";
+import { SplitterModule } from 'primeng/splitter';
+
 
 @Component({
   selector: 'app-root',
@@ -13,8 +17,11 @@ import { RouterLink, RouterOutlet } from '@angular/router';
     ButtonModule,
     InputTextModule,
     ToolbarModule,
-    FluidModule
-  ],
+    FluidModule,
+    ChatWindow,
+    RecipePlan,
+    SplitterModule
+],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

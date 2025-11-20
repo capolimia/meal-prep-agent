@@ -1,0 +1,15 @@
+<main>
+  <p-splitter [style]="{ height: '100vh' }" styleClass="mb-8">
+    <ng-template #panel>
+      <div class="items-center justify-center h-full">
+        <app-chat-window></app-chat-window>
+      </div>
+    </ng-template>
+    <ng-template #panel>
+      <div class="items-center justify-center h-full">
+        <app-recipe-plan></app-recipe-plan>
+      </div>
+    </ng-template>
+  </p-splitter>
+</main>
+

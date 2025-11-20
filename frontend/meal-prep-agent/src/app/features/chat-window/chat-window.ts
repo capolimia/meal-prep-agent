@@ -6,6 +6,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ToolbarModule } from 'primeng/toolbar';
 import { FluidModule } from 'primeng/fluid';
 import { v4 as uuidv4 } from 'uuid';
+import { SkeletonModule } from 'primeng/skeleton';
+import { CardModule } from 'primeng/card';
+
 
 @Component({
   selector: 'app-chat-window',
@@ -15,7 +18,9 @@ import { v4 as uuidv4 } from 'uuid';
     InputTextModule,
     ButtonModule,
     ToolbarModule,
-    FluidModule
+    FluidModule,
+    SkeletonModule,
+    CardModule
   ],
   templateUrl: './chat-window.html',
   styleUrl: './chat-window.css',
@@ -27,6 +32,7 @@ export class ChatWindow {
   
   currentMessage = '';
   aiResponse = '';
+  messages: Array<{ text: string; isUser: boolean }> = [];
   isLoading = false;
 
   async createSession() {
@@ -44,20 +50,31 @@ export class ChatWindow {
   async handleSendMessage() {
     if (!this.currentMessage.trim()) return;
     
-    this.isLoading = true;
-    this.aiResponse = '';
     const userMessage = this.currentMessage;
     this.currentMessage = ''; // Clear input immediately
     
+    // Add user message to chat
+    this.messages.push({ text: userMessage, isUser: true });
+    
+    this.isLoading = true;
+    this.aiResponse = '';
+    
     try {
       await this.sendMessageToApi(userMessage, (chunk) => {
-        this.aiResponse += chunk;
+        this.aiResponse = chunk;
       });
+      
+      // Add complete AI response to chat
+      if (this.aiResponse) {
+        this.messages.push({ text: this.aiResponse, isUser: false });
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      this.aiResponse = `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`;
+      const errorMsg = `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`;
+      this.messages.push({ text: errorMsg, isUser: false });
     } finally {
       this.isLoading = false;
+      this.aiResponse = '';
     }
   }
 

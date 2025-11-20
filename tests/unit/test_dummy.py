@@ -16,8 +16,16 @@ You can add your unit tests here.
 This is where you test your business logic, including agent functionality,
 data processing, and other core components of your application.
 """
+import asyncio
+import uuid
+
+from google.adk import Runner
+from google.adk.plugins import logging_plugin
+from google.adk.sessions import InMemorySessionService
+from google.genai import types
+
+from app import app
 
 
-def test_dummy() -> None:
-    """Placeholder - replace with real tests."""
-    assert 1 == 1
+
+
