@@ -1,22 +1,34 @@
 import asyncio
 import uuid
 import os
-
+import google.auth
 from google.adk import Runner
 from google.adk.plugins import logging_plugin
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
+from google.adk.memory import VertexAiMemoryBankService
 
 from app.agent import app
+project_id = "capstone-478122"
+os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
+os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "global")
+os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
+agent_engine_id = os.environ.get("GOOGLE_CLOUD_AGENT_ENGINE_ID")
 
-
+print("project id=" + project_id)
 session_service = InMemorySessionService()
-
+memory_service = VertexAiMemoryBankService(
+    project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+    location=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"),
+    agent_engine_id=agent_engine_id, # Replace with your Agent Engine ID
+)
 session = session_service.create_session_sync(user_id="test_user", app_name="app")
+
 session_id = session.id
 
 agent_runner = Runner(
     session_service=session_service,
+    memory_service=memory_service,
     app=app,
 )
 

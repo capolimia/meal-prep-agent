@@ -34,7 +34,8 @@ os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "global")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 agent_engine_id = os.environ.get("GOOGLE_CLOUD_AGENT_ENGINE_ID")
 
-recipe_list = ""
+recipe_idea_list = [""]
+recipe_link_list = dict()
 
 def get_day_of_week() -> str:
     """Gets the current day of the week.
@@ -58,11 +59,13 @@ def get_day_of_week() -> str:
 
 async def auto_save_session_to_memory_callback(callback_context):
     print("saving....")
-    await callback_context._invocation_context.memory_service.add_session_to_memory(
-        callback_context._invocation_context.session)
+    memory_service = callback_context._invocation_context.memory_service
+    if memory_service:
+        await memory_service.add_session_to_memory(
+            callback_context._invocation_context.session)
 
 planning_agent = Agent(
-    name="recipe_search_agent",
+    name="planning_agent",
     model="gemini-2.5-flash",
     description='A helpful AI agent used for creating a weekly meal schedule.',
     instruction="You are a helpful AI assistant that can create a meal schedule."
@@ -76,18 +79,24 @@ planning_agent = Agent(
     tools=[get_day_of_week],
 )
 
-recipe_search_agent = Agent(
-    name="recipe_search_agent",
+recipe_idea_agent = Agent(
+    name="recipe_idea_agent",
     model="gemini-2.5-flash",
-    description='A helpful AI agent that can search the internet for recipes.',
-    instruction="You are a helpful AI assistant that can search for "
-                "recipies on the web."
-                "Use the google_search tool to search for recipes. "
+    description='A helpful AI agent that can search the internet for recipe ideas.',
+    instruction="You are a helpful AI assistant that can search for recipies on the web using "
+                "the google_search tool to search for recipe ideas. "
                 "If any dietary restrictions are specified, you MUST consider those requirements, "
-                "and return ONLY recipes that fit the dietary restrictions. "
-                "You can investigate articles that contain lists of recipes, "
-                "searching for recipes that are sourced from links that contain a full recipe, "
-                "including the links in your response.",
+                "and respond with ONLY recipes that fit the dietary restrictions",
+    tools=[google_search],
+)
+
+recipe_link_agent = Agent(
+    name="recipe_link_agent",
+    model="gemini-2.5-flash",
+    description='A helpful AI agent that can search the internet for recipe links based on recipe ideas.',
+    instruction="You are a helpful AI assistant that can search for recipies on the web using "
+                "the google_search, based on a list of recipe ideas provided."
+                "Respond with a dict with links associated for each of the meal ideas requested.",
     tools=[google_search],
 )
 
@@ -98,11 +107,13 @@ meal_prep_agent = Agent(
     description='A helpful AI agent that helps a user generate a meal plan.',
     instruction="You are a helpful AI assistant designed to create a meal plan for the user."
                 "You must ALWAYS ask the user for dietary restrictions if they did not specify."
-                "Then call the recipe_search_agent to get recipes with those specifications for breakfast, lunch, and dinner."
-                "Store the result from the recipe_search agent in the recipe_list variable."
-                "Then, create a schedule using the planning_agent tool, including the recipe_list info in your request."
-                "Finally, return the result with the response in markdown format.",
-    tools=[AgentTool(recipe_search_agent), AgentTool(planning_agent), adk.tools.preload_memory_tool.PreloadMemoryTool()],
+                "Then call the recipe_idea_agent to get recipe ideas with those specifications for breakfast, lunch, and dinner."
+                "Store the result from the recipe_idea_agent in the recipe_idea_list variable."
+                "Next, use the recipe_link_agent to request specific recipe links for each item in the recipe_idea_list."
+                "Store the response in recipe_link_list, with the recipe name as the key, and the value as the link."
+                "Then, create a schedule using the planning_agent tool, including the recipe_link_list in your request."
+                "Finally, respond with the resulting schedule from the planning_agent in markdown format.",
+    tools=[AgentTool(recipe_idea_agent), AgentTool(recipe_link_agent), AgentTool(planning_agent), adk.tools.preload_memory_tool.PreloadMemoryTool()],
     after_agent_callback=auto_save_session_to_memory_callback,
 )
 
