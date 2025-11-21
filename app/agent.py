@@ -34,25 +34,10 @@ os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "global")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 agent_engine_id = os.environ.get("GOOGLE_CLOUD_AGENT_ENGINE_ID")
 
-def find_recipies(query: str) -> str:
-    """Searches the web for recipes.
-
-    Args:
-        query: A string containing the location to get weather information for.
-
-    Returns:
-        A string with the simulated weather information for the queried location.
-    """
-    if "sf" in query.lower() or "san francisco" in query.lower():
-        return "It's 60 degrees and foggy."
-    return "It's 90 degrees and sunny."
-
+recipe_list = ""
 
 def get_day_of_week() -> str:
-    """Simulates getting the current time for a city.
-
-    Args:
-        city: The name of the city to get the current time for.
+    """Gets the current day of the week.
 
     Returns:
         A string with the current day of the week.
@@ -62,23 +47,47 @@ def get_day_of_week() -> str:
 
     tz = ZoneInfo(tz_identifier)
     now = datetime.datetime.now(tz)
-    print(now.isoweekday())
-    return f"The current day of the week is {now.isoweekday()}"
+    weekdays = {1: "Monday",
+                2: "Tuesday",
+                3: "Wednesday",
+                4: "Thursday",
+                5: "Friday",
+                6: "Saturday",
+                7: "Sunday"}
+    return f"The current day of the week is {weekdays[now.isoweekday()]}"
 
 async def auto_save_session_to_memory_callback(callback_context):
     print("saving....")
     await callback_context._invocation_context.memory_service.add_session_to_memory(
         callback_context._invocation_context.session)
 
+planning_agent = Agent(
+    name="recipe_search_agent",
+    model="gemini-2.5-flash",
+    description='A helpful AI agent used for creating a weekly meal schedule.',
+    instruction="You are a helpful AI assistant that can create a meal schedule."
+                "You can handle requests containing recipies, and their links."
+                "You must create a meal plan for breakfast, lunch and dinner (unless specified) "
+                "based on the links and recipe options provided."
+                "Utilize the get day of the week tool to check the current day, and start the meal plan on that day, "
+                "creating a plan for one week of meals."
+                "ONLY add recipes to the plan that have associated links with a full recipe breakdown."
+                "Include the links to the recipes found in your response, along with the full weekly plan.",
+    tools=[get_day_of_week],
+)
+
 recipe_search_agent = Agent(
     name="recipe_search_agent",
     model="gemini-2.5-flash",
-    instruction="You are a helpful AI assistant designed to use the google_search tool to find "
-                "recipies for breakfast, lunch, and dinner on the web."
+    description='A helpful AI agent that can search the internet for recipes.',
+    instruction="You are a helpful AI assistant that can search for "
+                "recipies on the web."
+                "Use the google_search tool to search for recipes. "
                 "If any dietary restrictions are specified, you MUST consider those requirements, "
-                "and return ONLY recipies that fit the dietary restrictions. "
-                "ONLY Return recipes that are sourced from websites that contain a full recipe. "
-                "Include the links to the recipes found in your response.",
+                "and return ONLY recipes that fit the dietary restrictions. "
+                "You can investigate articles that contain lists of recipes, "
+                "searching for recipes that are sourced from links that contain a full recipe, "
+                "including the links in your response.",
     tools=[google_search],
 )
 
@@ -86,16 +95,14 @@ recipe_search_agent = Agent(
 meal_prep_agent = Agent(
     name="meal_prep_agent",
     model="gemini-2.5-flash",
+    description='A helpful AI agent that helps a user generate a meal plan.',
     instruction="You are a helpful AI assistant designed to create a meal plan for the user."
                 "You must ALWAYS ask the user for dietary restrictions if they did not specify."
-                "Then call the recipe_search_agent to get recipes with those specifications."
-                "Then, generate a meal plan for each meal (breakfast, lunch, and dinner unless specified by user)"
-                " based on the day of the week, starting with the current weekday."
-                "You can find the current day of the week using the get_day_of_week tool."
-                "Share your findings with the user, including the links provided from the recipe_search_agent, "
-                "with the response in markdown format."
-                "DO NOT provide recipes without internet links included.",
-    tools=[AgentTool(recipe_search_agent), get_day_of_week, adk.tools.preload_memory_tool.PreloadMemoryTool(),],
+                "Then call the recipe_search_agent to get recipes with those specifications for breakfast, lunch, and dinner."
+                "Store the result from the recipe_search agent in the recipe_list variable."
+                "Then, create a schedule using the planning_agent tool, including the recipe_list info in your request."
+                "Finally, return the result with the response in markdown format.",
+    tools=[AgentTool(recipe_search_agent), AgentTool(planning_agent), adk.tools.preload_memory_tool.PreloadMemoryTool()],
     after_agent_callback=auto_save_session_to_memory_callback,
 )
 

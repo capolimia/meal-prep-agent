@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+import os
 
 from google.adk import Runner
 from google.adk.plugins import logging_plugin
@@ -7,6 +8,18 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 from app.agent import app
+
+
+session_service = InMemorySessionService()
+
+session = session_service.create_session_sync(user_id="test_user", app_name="app")
+session_id = session.id
+
+agent_runner = Runner(
+    session_service=session_service,
+    app=app,
+)
+
 
 def print_agent_response(events):
     """Print agent's text responses from events."""
@@ -16,25 +29,8 @@ def print_agent_response(events):
                 if part.text:
                     print(f"Agent > {part.text}")
 
-
-session_service = InMemorySessionService()
-session_id = f"{uuid.uuid4().hex[:8]}"
-
-
-agent_runner = Runner(
-    session_service=session_service,
-    app=app,
-)
-
-session_service.create_session(
-            app_name="app", user_id="test_user", session_id=session_id
-        )
-
-
-
-
 async def agent_runner_function():
-    query_content = types.Content(role="user", parts=[types.Part(text="I am a vegetarian. Please create me a meal plan!")])
+    query_content = types.Content(role="user", parts=[types.Part(text="I am a vegetarian. Please create meal plan for me for next week!")])
     events = []
 
     async for event in agent_runner.run_async(
