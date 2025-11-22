@@ -8,14 +8,14 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from google.adk.memory import VertexAiMemoryBankService
 
-from app.agent import app
+from app.agent import app, recipe_link_list
+
 project_id = "capstone-478122"
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
 os.environ.setdefault("GOOGLE_CLOUD_LOCATION", "global")
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "True")
 agent_engine_id = os.environ.get("GOOGLE_CLOUD_AGENT_ENGINE_ID")
 
-print("project id=" + project_id)
 session_service = InMemorySessionService()
 memory_service = VertexAiMemoryBankService(
     project=os.getenv("GOOGLE_CLOUD_PROJECT"),
