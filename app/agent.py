@@ -18,12 +18,9 @@ from zoneinfo import ZoneInfo
 
 import google.auth
 from google import adk
-from google.adk import Runner
 from google.adk.agents import Agent
 from google.adk.apps.app import App
 from google.adk.memory import VertexAiMemoryBankService
-from google.adk.plugins import logging_plugin
-from google.adk.sessions import VertexAiSessionService, InMemorySessionService
 from google.adk.tools import AgentTool, google_search
 
 from app.logging_plugin import LoggingPlugin
@@ -86,16 +83,9 @@ def check_links_are_valid(link: str) -> bool:
     except Exception:
         return False
 
-async def auto_save_session_to_memory_callback(callback_context):
-    print("saving....")
-    memory_service = callback_context._invocation_context.memory_service
-    if memory_service:
-        await memory_service.add_session_to_memory(
-            callback_context._invocation_context.session)
-
 planning_agent = Agent(
     name="planning_agent",
-    model="gemini-3-pro-preview",
+    model="gemini-2.5-pro",
     description='A helpful AI agent used for creating a weekly meal schedule.',
     instruction="You are a helpful AI assistant that can create a meal schedule."
                 "You can handle requests containing recipies, and their links."
@@ -110,32 +100,34 @@ planning_agent = Agent(
 
 recipe_idea_agent = Agent(
     name="recipe_idea_agent",
-    model="gemini-3-pro-preview",
+    model="gemini-2.5-pro",
     description='A helpful AI agent that can search the internet for recipe ideas.',
     instruction="You are a helpful AI assistant that can search for recipies on the web using "
                 "the google_search tool to search for recipe ideas. "
                 "Provide AT LEAST 7 options for each search."
                 "If any dietary restrictions are specified, you MUST consider those requirements, "
-                "and respond with ONLY recipes that fit the dietary restrictions",
+                "and respond with ONLY recipes that fit the dietary restrictions. "
+                "Do not include any other text based response such as opinions on the recipe ideas that have been returned.",
     tools=[google_search],
 )
 
 recipe_link_agent = Agent(
     name="recipe_link_agent",
-    model="gemini-3-pro-preview",
+    model="gemini-2.5-pro",
     description='A helpful AI agent that can search the internet for recipe links based on recipe ideas.',
     instruction="You are a helpful AI assistant that can search for recipies on the web using "
                 "the google_search tool, based on a list of recipe ideas provided."
                 "Search for recipies based on the ideas provided, and find valid links to full recipes for your response. "
-                "Check that the recipes you provide have VALID LINKS and do not lead to a 404 page, and are not vertexaisearch links."
-                "Respond with a dict with links associated for each of the meal ideas requested.",
+                "ALWAYS Check that the recipes you provide have VALID LINKS and do not respond with a 404 error, and are not vertexaisearch links."
+                "Respond with a dict with links associated for each of the meal ideas requested."
+                "Do not include any other text based response such as opinions on the recipe links that have been returned.",
     tools=[google_search],
 )
 
 
 meal_prep_agent = Agent(
     name="meal_prep_agent",
-    model="gemini-3-pro-preview",
+    model="gemini-2.5-pro",
     description='A helpful AI agent that helps a user generate a meal plan.',
     instruction="You are a helpful AI assistant designed to create a meal plan for the user."
                 "You must ALWAYS ask the user for dietary restrictions if they did not specify."
@@ -148,8 +140,7 @@ meal_prep_agent = Agent(
                 "Once all links are valid in recipe_link_list, create a schedule using the planning_agent tool, "
                 "including the recipe_link_list in your request."
                 "Finally, respond with the resulting schedule from the planning_agent in markdown format.",
-    tools=[AgentTool(recipe_idea_agent), AgentTool(recipe_link_agent), AgentTool(planning_agent), check_links_are_valid, adk.tools.preload_memory_tool.PreloadMemoryTool()],
-    after_agent_callback=auto_save_session_to_memory_callback,
+    tools=[AgentTool(recipe_idea_agent), AgentTool(recipe_link_agent), AgentTool(planning_agent), check_links_are_valid, adk.tools.preload_memory_tool.PreloadMemoryTool()]
 )
 
 # need to deploy service first

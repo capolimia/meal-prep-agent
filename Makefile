@@ -3,9 +3,9 @@ install:
 	uv sync && npm --prefix frontend install
 
 dev:
-	cmd /c "start cmd /k make dev-backend"
-	cmd /c "timeout /t 2 /nobreak >nul"
-	cmd /c "start cmd /k make dev-frontend"
+	cmd /c start cmd /k make dev-backend
+	cmd /c timeout /t 2 /nobreak >nul
+	cmd /c start cmd /k make dev-frontend
 
 dev-backend:
 	uv run adk api_server app --allow_origins="*"

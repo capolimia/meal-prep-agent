@@ -1,20 +1,16 @@
 import { Routes } from '@angular/router';
-import { ChatWindow } from './features/chat-window/chat-window';
-import { RecipePlan } from './features/recipe-plan/recipe-plan';
+import { MainView } from './features/main-view/main-view';
+import { RecipePlanTest } from './features/recipe-plan/recipe-plan-test';
 
 export const routes: Routes = [
     {
         path: '',
-        component: ChatWindow
+        component: MainView,
+        title: 'Meal Prep Agent'
     },
     {
-        path: 'chat',
-        component: ChatWindow,
-        title: 'Chat'
-    },
-    {
-        path: 'recipe',
-        component: RecipePlan,
-        title: 'Recipe Plan'
+        path: 'test',
+        component: RecipePlanTest,
+        title: 'Recipe Plan Test'
     }
 ];

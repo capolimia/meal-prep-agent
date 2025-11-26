@@ -1,3 +1,26 @@
 <div class="recipe-plan-container">
-<p-card>Recipie plan works!</p-card>
+  <p-card>
+    <ng-template pTemplate="header">
+      <div class="flex justify-between items-center p-4">
+        <h2 class="text-2xl font-bold">Recipe Plan</h2>
+        @if (htmlContent) {
+          <p-button 
+            label="Download PDF" 
+            icon="pi pi-download"
+            (click)="downloadAsPdf()"
+            [loading]="isGeneratingPdf"
+            [disabled]="isGeneratingPdf"
+          />
+        }
+      </div>
+    </ng-template>
+    
+    <div id="recipe-preview" class="recipe-preview">
+      @if (htmlContent) {
+        <div class="markdown-content" [innerHTML]="htmlContent"></div>
+      } @else {
+        <p class="text-gray-500 italic">No recipe plan yet. Start a conversation to generate your meal plan!</p>
+      }
+    </div>
+  </p-card>
 </div>

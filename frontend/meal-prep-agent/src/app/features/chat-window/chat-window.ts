@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -25,7 +25,8 @@ import { CardModule } from 'primeng/card';
   templateUrl: './chat-window.html',
   styleUrl: './chat-window.css',
 })
-export class ChatWindow {
+export class ChatWindow implements OnDestroy {
+  @Output() recipePlanGenerated = new EventEmitter<string>();
   private baseUrl = 'http://localhost:8000';
   private userId: string | null = null;
   private sessionId: string | null = null;
@@ -34,6 +35,14 @@ export class ChatWindow {
   aiResponse = '';
   messages: Array<{ text: string; isUser: boolean }> = [];
   isLoading = false;
+  loadingMessageIndex = 0;
+  loadingMessages = [
+    'Thinking... This can take up to 10 minutes. Thanks for your patience!',
+    'Still working on it... We appreciate you waiting!',
+    'Almost there... Your patience means a lot!',
+    'Crafting the perfect meal plan... Thank you for being patient!'
+  ];
+  private loadingMessageInterval: any;
 
   async createSession() {
     const sessionId = uuidv4();
@@ -58,6 +67,8 @@ export class ChatWindow {
     
     this.isLoading = true;
     this.aiResponse = '';
+    this.loadingMessageIndex = 0;
+    this.startLoadingMessageCycle();
     
     try {
       await this.sendMessageToApi(userMessage, (chunk) => {
@@ -67,15 +78,37 @@ export class ChatWindow {
       // Add complete AI response to chat
       if (this.aiResponse) {
         this.messages.push({ text: this.aiResponse, isUser: false });
+        // Emit the response to update the recipe plan
+        if (this.aiResponse.includes('.com')) {
+          this.recipePlanGenerated.emit(this.aiResponse);
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMsg = `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`;
       this.messages.push({ text: errorMsg, isUser: false });
     } finally {
+      this.stopLoadingMessageCycle();
       this.isLoading = false;
       this.aiResponse = '';
     }
+  }
+
+  private startLoadingMessageCycle() {
+    this.loadingMessageInterval = setInterval(() => {
+      this.loadingMessageIndex = (this.loadingMessageIndex + 1) % this.loadingMessages.length;
+    }, 7000); // Change message every 7 seconds
+  }
+
+  private stopLoadingMessageCycle() {
+    if (this.loadingMessageInterval) {
+      clearInterval(this.loadingMessageInterval);
+      this.loadingMessageInterval = null;
+    }
+  }
+
+  ngOnDestroy() {
+    this.stopLoadingMessageCycle();
   }
 
   private async sendMessageToApi(query: string, onChunk: (text: string) => void) {
