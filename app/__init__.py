@@ -1,9 +1,6 @@
 from app.agent import app
 import logging
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(name)s - %(message)s'
-)
+#initalizes the app with the app specified in agent.py
 
 __all__ = ["app"]
