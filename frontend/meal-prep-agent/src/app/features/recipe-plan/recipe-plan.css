@@ -9,7 +9,8 @@
 
 .recipe-preview {
   padding: 2rem;
-  min-height: 400px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
   background: linear-gradient(to bottom, #ffffff, #f8f9fa);
 }
 

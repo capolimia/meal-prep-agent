@@ -140,8 +140,7 @@ recipe_link_agent = Agent(
                 "the google_search tool, based on a list of recipe ideas provided."
                 "Search for recipies based on the ideas provided, and find valid links to full recipes for your response. "
                 "Respond with VALID links associated for each of the meal ideas requested."
-                "DO NOT return any link who's response is anything besides HTTP 200 OK. "
-                "DO NOT return links that start with https://vertexaisearch. "                
+                "DO NOT return any link which the response is anything besides HTTP 200 OK. "
                 "Do not include any other text based response such as opinions on the recipe links that have been returned.",
     tools=[google_search],
 )
