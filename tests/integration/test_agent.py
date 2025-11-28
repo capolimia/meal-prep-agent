@@ -20,7 +20,7 @@ from google.genai import types
 
 from app.agent import meal_prep_agent
 
-
+#built in test from adk starter guide.
 def test_agent_stream() -> None:
     """
     Integration test for the agent stream functionality.
@@ -56,3 +56,5 @@ def test_agent_stream() -> None:
             has_text_content = True
             break
     assert has_text_content, "Expected at least one message with text content"
+
+

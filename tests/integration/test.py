@@ -9,7 +9,10 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from google.adk.memory import VertexAiMemoryBankService
 
-from app.agent import app, recipe_link_list, recipe_idea_agent
+from app.agent import app
+
+#class to test the integration flow locally I utilized for development. Used the vertex ai memory bank service to test memory saving on the cloud.
+#this was useful when I was trying to test the agent flow locally without initializing the built in adk server.
 
 project_id = "capstone-478122"
 os.environ.setdefault("GOOGLE_CLOUD_PROJECT", project_id)
@@ -23,17 +26,17 @@ memory_service = VertexAiMemoryBankService(
     location=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1"),
     agent_engine_id=agent_engine_id, # Replace with your Agent Engine ID
 )
-session = session_service.create_session_sync(user_id="test_user", app_name="idea")
+session = session_service.create_session_sync(user_id="test_user", app_name="app")
 
 session_id = session.id
 
 agent_runner = Runner(
     session_service=session_service,
     memory_service=memory_service,
-    agent=recipe_idea_agent,
-    app_name="idea"
+    app=app,
 )
 
+from app.agent import app
 
 def print_agent_response(events):
     """Print agent's text responses from events."""
@@ -44,7 +47,7 @@ def print_agent_response(events):
                     print(f"Agent > {part.text}")
 
 async def agent_runner_function():
-    query_content = types.Content(role="user", parts=[types.Part(text="Teriyaki Salmon")])
+    query_content = types.Content(role="user", parts=[types.Part(text="I am a vegetarian. Please create meal plan for me for next week!")])
     events = []
 
     async for event in agent_runner.run_async(

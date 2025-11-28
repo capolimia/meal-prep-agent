@@ -23,6 +23,7 @@ from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export import SpanExportResult
 
+#created by agent starter kit, used to log span data to google cloud logging when deploying to vertex AI Agent engine.
 
 class CloudTraceLoggingSpanExporter(CloudTraceSpanExporter):
     """

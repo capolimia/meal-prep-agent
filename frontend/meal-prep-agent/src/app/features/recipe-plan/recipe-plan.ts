@@ -6,6 +6,8 @@ import { marked } from 'marked';
 import { jsPDF } from 'jspdf';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
+//Recipe plan component. Displays the final recipe plan in a dedicated panel, and adds functionality 
+// to download in a pdf format  for easy saving.
 @Component({
   selector: 'app-recipe-plan',
   imports: [CommonModule, Card, ButtonModule],
@@ -30,6 +32,7 @@ export class RecipePlan implements OnChanges {
     marked.setOptions({ renderer });
   }
 
+  //check for changes to the recipe plan based on the emitted event from chat window (gathered from main-view.ts)
   async ngOnChanges(changes: SimpleChanges) {
     if (changes['markdownContent'] && this.markdownContent) {
       const html = await marked(this.markdownContent);
@@ -37,6 +40,7 @@ export class RecipePlan implements OnChanges {
     }
   }
 
+  //download as pdf functionality
   async downloadAsPdf() {
     this.isGeneratingPdf = true;
     try {

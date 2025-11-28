@@ -25,6 +25,8 @@ import { CardModule } from 'primeng/card';
   templateUrl: './chat-window.html',
   styleUrl: './chat-window.css',
 })
+
+//The chat window for communicating to the agent backend.
 export class ChatWindow implements OnDestroy {
   @Output() recipePlanGenerated = new EventEmitter<string>();
   private baseUrl = 'http://localhost:8000';
@@ -44,6 +46,7 @@ export class ChatWindow implements OnDestroy {
   ];
   private loadingMessageInterval: any;
 
+  //creates a session if one does not exist with a default user id. 
   async createSession() {
     const sessionId = uuidv4();
     const response = await fetch(
@@ -56,11 +59,12 @@ export class ChatWindow implements OnDestroy {
     return data;
   }
 
+  //handles the sending of messages to the local backend.
   async handleSendMessage() {
     if (!this.currentMessage.trim()) return;
     
     const userMessage = this.currentMessage;
-    this.currentMessage = ''; // Clear input immediately
+    this.currentMessage = ''; // Clear input box immediately
     
     // Add user message to chat
     this.messages.push({ text: userMessage, isUser: true });
@@ -71,14 +75,15 @@ export class ChatWindow implements OnDestroy {
     this.startLoadingMessageCycle();
     
     try {
-      await this.sendMessageToApi(userMessage, (chunk) => {
-        this.aiResponse = chunk;
+      //try to send the message
+      await this.sendMessageToApi(userMessage, (response) => {
+        this.aiResponse = response;
       });
       
-      // Add complete AI response to chat
+      // Add complete AI response to chat if present
       if (this.aiResponse) {
         this.messages.push({ text: this.aiResponse, isUser: false });
-        // Emit the response to update the recipe plan
+        // Emit the response to update the recipe plan component if it is a final plan (if any recipe links are present)
         if (this.aiResponse.includes('.com')) {
           this.recipePlanGenerated.emit(this.aiResponse);
         }
@@ -88,18 +93,21 @@ export class ChatWindow implements OnDestroy {
       const errorMsg = `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`;
       this.messages.push({ text: errorMsg, isUser: false });
     } finally {
+      //stop the loading messages at the end of the request to the backend
       this.stopLoadingMessageCycle();
       this.isLoading = false;
       this.aiResponse = '';
     }
   }
 
+  //handles loading messages in the chat window while the response or plan is being generated
   private startLoadingMessageCycle() {
     this.loadingMessageInterval = setInterval(() => {
       this.loadingMessageIndex = (this.loadingMessageIndex + 1) % this.loadingMessages.length;
     }, 7000); // Change message every 7 seconds
   }
 
+  //stop loading messages
   private stopLoadingMessageCycle() {
     if (this.loadingMessageInterval) {
       clearInterval(this.loadingMessageInterval);
@@ -111,7 +119,9 @@ export class ChatWindow implements OnDestroy {
     this.stopLoadingMessageCycle();
   }
 
-  private async sendMessageToApi(query: string, onChunk: (text: string) => void) {
+  //Handles sending the message to the backend.
+  private async sendMessageToApi(query: string, onResponse: (text: string) => void) {
+    //if no session, create one.
     if (!this.sessionId) {
       console.log('No session, creating one...');
       await this.createSession();
@@ -131,68 +141,65 @@ export class ChatWindow implements OnDestroy {
       newMessage: { 
         parts: [{ text: query }], 
         role: 'user' 
-      },
-      streaming: false
+      }
     };
 
     console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
-    const response = await fetch(`${this.baseUrl}/run_sse`, {
+    //send to the backend and await response
+    const response = await fetch(`${this.baseUrl}/run`, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });
 
     console.log('Response status:', response.status);
 
+    //error handling
     if (!response.ok) {
       const errorText = await response.text();
       console.error('API error:', response.status, errorText);
       throw new Error(`API error: ${response.status} - ${errorText}`);
     }
 
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+    //await and log the response
+    const data = await response.json();
+    console.log('Response data:', data);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    if (data.error) {
+      throw new Error(data.error);
+    }
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-      for (const line of lines) {
-        if (line.startsWith('data:')) {
-          try {
-            const jsonStr = line.substring(5).trim();
-            if (!jsonStr) continue;
-            
-            const data = JSON.parse(jsonStr);
-            console.log('SSE event:', data);
-            
-            if (data.error) {
-              throw new Error(data.error);
-            }
-            
-            if (data.content?.parts) {
-              const text = data.content.parts
-                .filter((p: any) => p.text)
-                .map((p: any) => p.text)
-                .join(' ');
-              if (text) {
-                onChunk(text);
-              }
-            }
-          } catch (parseError) {
-            console.error('Error parsing SSE data:', parseError, line);
-          }
+    const events = data;
+    
+    // Get only the last event
+    const lastEvent = events[events.length - 1];
+    let text = '';
+    
+    if (lastEvent?.content?.parts) {
+      for (const part of lastEvent.content.parts) {
+        // Check for direct text
+        if (part.text) {
+          text = part.text;
+          break;
+        }
+        // Check for function response with result
+        if (part.functionResponse?.response?.result) {
+          text = part.functionResponse.response.result;
+          break;
         }
       }
+    }
+    
+    console.log('Extracted text from last event:', text);
+    
+    if (text) {
+      onResponse(text);
+    } else {
+      console.warn('No text found in last event. Full response:', JSON.stringify(data, null, 2));
+      throw new Error('No text content in response');
     }
   }
 }

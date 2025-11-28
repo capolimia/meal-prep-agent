@@ -17,6 +17,9 @@ from dataclasses import dataclass
 
 import google.auth
 
+#Generated config class by adk starter guide.
+
+
 # To use AI Studio credentials:
 # 1. Create a .env file in the /app directory with:
 #    GOOGLE_GENAI_USE_VERTEXAI=FALSE
