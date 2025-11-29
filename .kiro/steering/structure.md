@@ -37,22 +37,27 @@ app/
 - **Tools**: `google_search`, `get_day_of_week`, `PreloadMemoryTool`
 - **Memory**: Auto-saves sessions via `after_agent_callback`
 
-## Frontend (`frontend/`)
+## Frontend (`frontend/meal-prep-agent/`)
 
 ```
-frontend/
+frontend/meal-prep-agent/
 ├── src/
-│   ├── components/           # React components
-│   │   ├── ui/               # Shadcn UI components
-│   │   ├── ActivityTimeline.tsx
-│   │   ├── ChatMessagesView.tsx
-│   │   ├── InputForm.tsx
-│   │   └── WelcomeScreen.tsx
-│   ├── App.tsx               # Main app component
-│   ├── main.tsx              # Entry point
-│   └── global.css            # Global styles
-├── package.json              # Node dependencies
-└── vite.config.ts            # Vite configuration
+│   ├── app/
+│   │   ├── features/
+│   │   │   ├── chat-window/      # Chat interface component
+│   │   │   ├── recipe-plan/      # Recipe plan display component
+│   │   │   └── main-view/        # Main view container
+│   │   ├── app.ts                # Main app component
+│   │   ├── app.config.ts         # App configuration
+│   │   └── app.routes.ts         # Routing configuration
+│   ├── environments/
+│   │   ├── environment.ts        # Development config
+│   │   └── environment.prod.ts   # Production config (Cloud Run URL)
+│   └── main.ts                   # Entry point
+├── package.json                  # Node dependencies
+├── angular.json                  # Angular CLI configuration
+├── firebase.json                 # Firebase Hosting config
+└── DEPLOYMENT.md                 # Deployment instructions
 ```
 
 ## Tests (`tests/`)
@@ -102,7 +107,9 @@ deployment/
 1. **Agent definitions** go in `app/agent.py`
 2. **Custom tools** should be defined as functions in `app/agent.py` or separate `app/tools.py`
 3. **Environment variables** are loaded from `app/.env`
-4. **Frontend agent names** must match backend agent names for proper UI integration
-5. **Memory service** requires Agent Engine ID for production deployment
-6. **All Python code** must pass ruff, mypy, and codespell checks
-7. **Copyright headers** required on all source files (Apache 2.0)
+4. **Frontend communicates directly with Cloud Run backend** via `/run` endpoint
+5. **Session IDs are generated client-side** using uuid, no separate session creation endpoint needed
+6. **Memory service** requires Agent Engine ID for production deployment
+7. **All Python code** must pass ruff, mypy, and codespell checks
+8. **Copyright headers** required on all source files (Apache 2.0)
+9. **Frontend is deployed to Firebase Hosting**, backend to Cloud Run

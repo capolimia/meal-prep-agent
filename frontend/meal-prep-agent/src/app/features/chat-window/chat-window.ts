@@ -8,6 +8,7 @@ import { FluidModule } from 'primeng/fluid';
 import { v4 as uuidv4 } from 'uuid';
 import { SkeletonModule } from 'primeng/skeleton';
 import { CardModule } from 'primeng/card';
+import { environment } from '../../../environments/environment';
 
 
 @Component({
@@ -29,7 +30,7 @@ import { CardModule } from 'primeng/card';
 //The chat window for communicating to the agent backend.
 export class ChatWindow implements OnDestroy {
   @Output() recipePlanGenerated = new EventEmitter<string>();
-  private baseUrl = 'http://localhost:8000';
+  private baseUrl = environment.apiUrl;
   private userId: string | null = null;
   private sessionId: string | null = null;
   
@@ -124,7 +125,22 @@ export class ChatWindow implements OnDestroy {
     //if no session, create one.
     if (!this.sessionId) {
       console.log('No session, creating one...');
-      await this.createSession();
+      this.userId = 'u_' + uuidv4().substring(0, 8);
+      this.sessionId = 's_' + uuidv4().substring(0, 8);
+      
+      // Create session first
+      const sessionUrl = `${this.baseUrl}/apps/app/users/${this.userId}/sessions/${this.sessionId}`;
+      console.log('Creating session at:', sessionUrl);
+      const sessionResponse = await fetch(sessionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      
+      if (!sessionResponse.ok) {
+        throw new Error(`Failed to create session: ${sessionResponse.status}`);
+      }
+      console.log('Session created successfully');
     }
 
     console.log('Sending message:', {
@@ -138,15 +154,15 @@ export class ChatWindow implements OnDestroy {
       appName: 'app',
       userId: this.userId,
       sessionId: this.sessionId,
-      newMessage: { 
-        parts: [{ text: query }], 
-        role: 'user' 
+      newMessage: {
+        parts: [{ text: query }],
+        role: 'user'
       }
     };
 
     console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
-    //send to the backend and await response
+    //send to the backend using ADK /run endpoint
     const response = await fetch(`${this.baseUrl}/run`, {
       method: 'POST',
       headers: { 
@@ -164,41 +180,35 @@ export class ChatWindow implements OnDestroy {
       throw new Error(`API error: ${response.status} - ${errorText}`);
     }
 
-    //await and log the response
-    const data = await response.json();
-    console.log('Response data:', data);
+    //await and log the response - /run returns array of events
+    const events = await response.json();
+    console.log('Response events:', events);
 
-    if (data.error) {
-      throw new Error(data.error);
+    if (!Array.isArray(events)) {
+      throw new Error('Expected array of events from /run endpoint');
     }
 
-    const events = data;
-    
-    // Get only the last event
-    const lastEvent = events[events.length - 1];
+    // Find the last event with agent text response
     let text = '';
-    
-    if (lastEvent?.content?.parts) {
-      for (const part of lastEvent.content.parts) {
-        // Check for direct text
-        if (part.text) {
-          text = part.text;
-          break;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const event = events[i];
+      if (event.content?.parts) {
+        for (const part of event.content.parts) {
+          if (part.text) {
+            text = part.text;
+            break;
+          }
         }
-        // Check for function response with result
-        if (part.functionResponse?.response?.result) {
-          text = part.functionResponse.response.result;
-          break;
-        }
+        if (text) break;
       }
     }
     
-    console.log('Extracted text from last event:', text);
+    console.log('Extracted text:', text);
     
     if (text) {
       onResponse(text);
     } else {
-      console.warn('No text found in last event. Full response:', JSON.stringify(data, null, 2));
+      console.warn('No text found in events. Full response:', JSON.stringify(events, null, 2));
       throw new Error('No text content in response');
     }
   }
