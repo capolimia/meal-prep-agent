@@ -1,0 +1,149 @@
+.recipe-plan-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.recipe-preview {
+  padding: 2rem;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+}
+
+.markdown-content {
+  line-height: 1.8;
+  color: #2c3e50;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.markdown-content h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1.5rem;
+  color: #1a202c;
+  border-bottom: 3px solid #4a90e2;
+  padding-bottom: 0.5rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  color: #2d3748;
+  border-left: 4px solid #4a90e2;
+  padding-left: 1rem;
+}
+
+.markdown-content h3 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #4a5568;
+}
+
+.markdown-content ul, .markdown-content ol {
+  margin-left: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+
+.markdown-content p {
+  margin-bottom: 1.25rem;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.markdown-content em {
+  font-style: italic;
+  color: #4a5568;
+}
+
+.markdown-content a,
+.markdown-content .recipe-link {
+  color: #4a90e2;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.markdown-content a:hover,
+.markdown-content .recipe-link:hover {
+  color: #2c5aa0;
+  border-bottom-color: #2c5aa0;
+  background-color: rgba(74, 144, 226, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.markdown-content code {
+  background-color: #f1f5f9;
+  color: #e53e3e;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #cbd5e0;
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-bottom: 1.5rem;
+  color: #718096;
+  font-style: italic;
+}
+
+/* PDF-friendly styles */
+@media print {
+  .recipe-preview {
+    background: white !important;
+    padding: 1rem;
+  }
+  
+  .markdown-content {
+    color: #000 !important;
+  }
+  
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3 {
+    color: #000 !important;
+    page-break-after: avoid;
+  }
+  
+  .markdown-content a {
+    color: #0066cc !important;
+    text-decoration: underline;
+  }
+  
+  .markdown-content ul,
+  .markdown-content ol {
+    page-break-inside: avoid;
+  }
+}

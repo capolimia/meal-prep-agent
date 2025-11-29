@@ -21,7 +21,7 @@ from google.adk.events.event import Event
 
 from app.agent_engine_app import AgentEngineApp
 
-
+#built in test from adk starter guide.
 @pytest.fixture
 def agent_app() -> AgentEngineApp:
     """Fixture to create and set up AgentEngineApp instance"""

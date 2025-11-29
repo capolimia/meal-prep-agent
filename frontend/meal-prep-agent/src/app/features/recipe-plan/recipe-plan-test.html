@@ -1,0 +1,22 @@
+<div class="test-container">
+  <div class="test-controls">
+    <h1>Recipe Plan Component Test</h1>
+    <p-button 
+      label="Load Sample Meal Plan" 
+      icon="pi pi-file"
+      (click)="loadSampleData()"
+      styleClass="p-button-success"
+    />
+    <p-button 
+      label="Clear" 
+      icon="pi pi-times"
+      (click)="clearData()"
+      styleClass="p-button-secondary"
+      [style]="{'margin-left': '1rem'}"
+    />
+  </div>
+  
+  <div class="test-preview">
+    <app-recipe-plan [markdownContent]="testMarkdown"></app-recipe-plan>
+  </div>
+</div>

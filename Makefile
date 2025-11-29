@@ -3,19 +3,15 @@ install:
 	uv sync && npm --prefix frontend install
 
 dev:
-	make dev-backend & make dev-frontend
-
-dev-angular:
-	make dev-backend & make dev-frontend-angular
+	cmd /c start cmd /k make dev-backend
+	cmd /c timeout /t 2 /nobreak >nul
+	cmd /c start cmd /k make dev-frontend
 
 dev-backend:
 	uv run adk api_server app --allow_origins="*"
 
 dev-frontend:
-	npm --prefix frontend run dev
-
-dev-frontend-angular:
-	ng serve
+	cd frontend/meal-prep-agent && ng serve
 
 playground:
 	uv run adk web --port 8501
