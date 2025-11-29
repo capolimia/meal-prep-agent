@@ -23,8 +23,7 @@ from google.adk.plugins import logging_plugin
 from google.adk.tools import AgentTool, google_search
 
 
-# Function to get current day of the week. It defaults to New York time as that is the location while developing,
-# and getting the users location when running the app locally is unnecessarily creepy. Feel free to replace with your local time zone identifier in .env file.
+# Function to get current day of the week. It defaults to New York time as that is the location.
 def get_day_of_week() -> str:
     """Gets the current day of the week.
 
@@ -157,10 +156,10 @@ meal_prep_agent = Agent(
                 "Then call the recipe_idea_agent to get recipe ideas (specifying dietary restrictions)."
                 "Then call the recipe_idea_agent ONCE to get 21+ recipes with links (7 breakfast, 7 lunch, 7 dinner). "
                 "Next, use the recipe_link_agent to request specific recipe links for each idea from recipe_idea_agent. "
-                "Check all links for validity using the check_links_are_valid tool. Group any ones that are not valid and make another call "
-                "to the recipe_link_agent with all invalid ideas, requesting valid ones. "
-                "DO NOT SKIP this step - the check_links_are_valid tool is your source of truth for whether the recipe actually exists. "
-                "ENSURE ALL LINKS ARE VALIDATED, then create a schedule using the planning_agent tool, "
+                "Validate links by calling check_links_are_valid ONE link at a time. "
+                "Reject any vertexaisearch.cloud.google.com links - these are invalid. "
+                "If links are invalid, make a new request for all invalid links from recipe_link_agent. "
+                "Once you have valid links, create a schedule using the planning_agent tool, "
                 "including the validated recipe names and links in your request. "
                 "Finally, respond with the resulting schedule from the planning_agent in markdown format.",
     tools=[AgentTool(recipe_idea_agent), AgentTool(recipe_link_agent), AgentTool(planning_agent), check_links_are_valid],

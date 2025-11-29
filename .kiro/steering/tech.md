@@ -24,19 +24,17 @@
 
 ## Frontend
 
-- **Framework**: React 19 with Vite
+- **Framework**: Angular 19
 - **Language**: TypeScript 5.7
-- **Styling**: Tailwind CSS 4.1
-- **UI Components**: Shadcn UI with Radix UI primitives
-- **Build Tool**: Vite 6.4
-- **Linting**: ESLint 9
+- **UI Components**: PrimeNG
+- **Build Tool**: Angular CLI
+- **Linting**: ESLint
 
 ### Key Dependencies
 
-- `@langchain/langgraph-sdk` - Agent communication
-- `react-markdown` - Markdown rendering
-- `react-router-dom` - Routing
-- `lucide-react` - Icons
+- `primeng` - UI component library
+- `uuid` - Session ID generation
+- Direct HTTP fetch for backend communication
 
 ## Development Tools
 
@@ -94,7 +92,7 @@ GOOGLE_CLOUD_AGENT_ENGINE_ID=your_agent_engine_id
 
 ## Deployment Targets
 
-- **Local Development**: `adk api_server` + Vite dev server
-- **Agent Engine**: Vertex AI managed service
-- **Cloud Run**: Containerized deployment
-- **GKE**: Kubernetes deployment
+- **Local Development**: `adk api_server` + Angular dev server
+- **Cloud Run**: Primary production deployment (containerized FastAPI backend)
+- **Firebase Hosting**: Frontend deployment target
+- **Agent Engine**: Alternative Vertex AI managed service deployment (not currently used)
