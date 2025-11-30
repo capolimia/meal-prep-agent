@@ -4,16 +4,20 @@
 
 ```
 meal-prep-agent/
-├── app/                      # Backend application code
-├── frontend/                 # React frontend application
-├── deployment/               # Infrastructure and deployment configs
-├── notebooks/                # Jupyter notebooks for prototyping
-├── tests/                    # Test suites
 ├── .cloudbuild/              # CI/CD pipeline configurations
+├── .idea/                    # PyCharm IDE configuration
 ├── .kiro/                    # Kiro IDE configuration
+├── app/                      # Backend application code
+├── deployment/               # Infrastructure and deployment configs
+├── frontend/                 # Angular frontend application
+├── tests/                    # Test suites
+├── deploy-cloudrun.bat       # Cloud Run deployment script
+├── Dockerfile                # Docker configuration for Cloud Run
 ├── Makefile                  # Build automation commands
 ├── pyproject.toml            # Python project configuration
-└── uv.lock                   # Locked dependencies
+├── uv.lock                   # Locked dependencies
+├── README.md                 # Project documentation
+└── test_endpoints.py         # API endpoint tests
 ```
 
 ## Backend (`app/`)
@@ -32,10 +36,13 @@ app/
 
 ### Agent Architecture
 
-- **`meal_prep_agent`** (root): Orchestrates meal planning, asks for dietary restrictions, delegates recipe search
-- **`recipe_search_agent`**: Specialized agent for finding recipes via Google Search
-- **Tools**: `google_search`, `get_day_of_week`, `PreloadMemoryTool`
-- **Memory**: Auto-saves sessions via `after_agent_callback`
+- **`meal_prep_agent`** (root): Orchestrates meal planning, asks for dietary restrictions, delegates to specialized agents
+  - Agent Tools: `recipe_idea_agent`, `recipe_link_agent`, `planning_agent`
+  - Custom Tool: `check_links_are_valid`
+- **`recipe_idea_agent`**: Generates meal ideas using Google Search
+- **`recipe_link_agent`**: Finds recipe links using Google Search
+- **`planning_agent`**: Organizes meal plan by day of week
+  - Custom Tool: `get_day_of_week`
 
 ## Frontend (`frontend/meal-prep-agent/`)
 
@@ -45,18 +52,38 @@ frontend/meal-prep-agent/
 │   ├── app/
 │   │   ├── features/
 │   │   │   ├── chat-window/      # Chat interface component
+│   │   │   │   ├── chat-window.ts
+│   │   │   │   ├── chat-window.html
+│   │   │   │   └── chat-window.css
 │   │   │   ├── recipe-plan/      # Recipe plan display component
+│   │   │   │   ├── recipe-plan.ts
+│   │   │   │   ├── recipe-plan.html
+│   │   │   │   ├── recipe-plan.css
+│   │   │   │   ├── recipe-plan-test.ts  # Test component
+│   │   │   │   ├── recipe-plan-test.html
+│   │   │   │   └── recipe-plan-test.css
 │   │   │   └── main-view/        # Main view container
+│   │   │       └── main-view.ts
+│   │   ├── services/             # Angular services
 │   │   ├── app.ts                # Main app component
 │   │   ├── app.config.ts         # App configuration
 │   │   └── app.routes.ts         # Routing configuration
 │   ├── environments/
 │   │   ├── environment.ts        # Development config
 │   │   └── environment.prod.ts   # Production config (Cloud Run URL)
-│   └── main.ts                   # Entry point
+│   ├── main.ts                   # Entry point
+│   ├── main.server.ts            # Server-side rendering entry
+│   ├── server.ts                 # SSR server
+│   ├── index.html                # HTML template
+│   └── styles.css                # Global styles
+├── public/                       # Static assets
+│   └── favicon.ico
 ├── package.json                  # Node dependencies
 ├── angular.json                  # Angular CLI configuration
 ├── firebase.json                 # Firebase Hosting config
+├── deploy-firebase.bat           # Firebase deployment script (Windows)
+├── deploy-firebase.sh            # Firebase deployment script (Unix)
+├── Dockerfile                    # Docker configuration
 └── DEPLOYMENT.md                 # Deployment instructions
 ```
 
@@ -65,12 +92,9 @@ frontend/meal-prep-agent/
 ```
 tests/
 ├── unit/                     # Unit tests for business logic
-│   └── test_dummy.py
-├── integration/              # Integration tests for agents
-│   ├── test_agent.py         # Agent streaming tests
-│   └── test_agent_engine_app.py
-└── load_test/                # Performance/load tests
-    └── load_test.py
+└── integration/              # Integration tests for agents
+    ├── test_agent.py         # Agent streaming tests
+    └── test_agent_engine_app.py
 ```
 
 ### Testing Patterns
@@ -88,12 +112,6 @@ deployment/
 │   └── dev/                  # Dev environment configs
 └── README.md                 # Deployment instructions
 ```
-
-## Notebooks (`notebooks/`)
-
-- `intro_agent_engine.ipynb` - Getting started with ADK
-- `adk_app_testing.ipynb` - Testing agent applications
-- `evaluating_adk_agent.ipynb` - Agent evaluation workflows
 
 ## Configuration Files
 

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { RecipePlan } from './recipe-plan';
 
+//used for development purposes to mock the recipe plan functionality without waiting for the agent.
 @Component({
   selector: 'app-recipe-plan-test',
   imports: [CommonModule, ButtonModule, RecipePlan],

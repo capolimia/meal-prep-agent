@@ -1,233 +1,163 @@
-# Gemini Fullstack Agent Development Kit (ADK) Quickstart
+# Meal Prep Agent
 
-The **Gemini Fullstack Agent Development Kit (ADK) Quickstart** is a production-ready blueprint for building a sophisticated, fullstack research agent with Gemini. It's built to demonstrate how the ADK helps structure complex agentic workflows, build modular agents, and incorporate critical Human-in-the-Loop (HITL) steps.
+This **Meal Prep Agent** is a Proof of Concept for an agentic workflow that can easily create a meal plan for the week after specifying your dietary restrictions. It is based on the Google ADK Agent Starter pack.
 
-<table>
-  <thead>
-    <tr>
-      <th colspan="2">Key Features</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>🏗️</td>
-      <td><strong>Fullstack & Production-Ready:</strong> A complete React frontend and ADK-powered FastAPI backend, with deployment options for <a href="https://cloud.google.com/run">Google Cloud Run</a> and <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/overview">Vertex AI Agent Engine</a>.</td>
-    </tr>
-    <tr>
-      <td>🧠</td>
-      <td><strong>Advanced Agentic Workflow:</strong> The agent uses Gemini to <strong>strategize</strong> a multi-step plan, <strong>reflect</strong> on findings to identify gaps, and <strong>synthesize</strong> a final, comprehensive report.</td>
-    </tr>
-    <tr>
-      <td>🔄</td>
-      <td><strong>Iterative & Human-in-the-Loop Research:</strong> Involves the user for plan approval, then autonomously loops through searching (via Gemini function calling) and refining its results until it has gathered sufficient information.</td>
-    </tr>
-  </tbody>
-</table>
 
-Here is the agent in action:
+## Key Features:
 
-<img src="https://github.com/GoogleCloudPlatform/agent-starter-pack/blob/main/docs/images/adk_gemini_fullstack.gif?raw=true" width="80%" alt="Gemini Fullstack ADK Preview">
+**Fullstack & Deployed to the Cloud:** An Angular Frontend and ADK-powered FastAPI backend, deployed to Google Cloud Run.
 
-This project adapts concepts from the [Gemini FullStack LangGraph Quickstart](https://github.com/google-gemini/gemini-fullstack-langgraph-quickstart) for the frontend app. 
+**Agentic Workflow:** Gemini is used to come up with recipe ideas based on user specifications and dietary restrictions, using multiple tool types: agent-as-a-tool, built in tools, and custom tools
 
-## 🚀 Getting Started: From Zero to Running Agent in 1 Minute
-**Prerequisites:** **[Python 3.10+](https://www.python.org/downloads/)**, **[Node.js](https://nodejs.org/)**, **[uv](https://github.com/astral-sh/uv)**
+Access the deployed agent here:
 
-You have two options to get started. Choose the one that best fits your setup:
+[**Meal Prep Agent**](https://capstone-478122.web.app/)
 
-*   A. **[Google AI Studio](#a-google-ai-studio)**: Choose this path if you want to use a **Google AI Studio API key**. This method involves cloning the sample repository.
-*   B. **[Google Cloud Vertex AI](#b-google-cloud-vertex-ai)**: Choose this path if you want to use an existing **Google Cloud project** for authentication. This method generates a new, prod-ready project using the [agent-starter-pack](https://goo.gle/agent-starter-pack) including all the deployment scripts required.
+This project was developed with the assistance of the Kiro AI IDE. 
 
----
+Local setup instructions are not included to protect private API keys and credentials. This repository is for reference purposes only.
 
-### A. Google AI Studio
 
-You'll need a **[Google AI Studio API Key](https://aistudio.google.com/app/apikey)**.
+## Backend 
 
-#### Step 1: Clone Repository
-Clone the repository and `cd` into the project directory.
+### File structure: (`app/`)
 
-```bash
-git clone https://github.com/google/adk-samples.git
-cd adk-samples/python/agents/gemini-fullstack
+```
+app/
+├── agent.py                  # Main agent and tool definitions (meal_prep_agent, recipe_idea_agent, recipe_link_agent, planning_agent, get_day_of_week, check_links_are_valid)
+
+└── .env                      # Environment variables (not in git)
 ```
 
-#### Step 2: Set Environment Variables
-Create a `.env` file in the `app` folder by running the following command (replace YOUR_AI_STUDIO_API_KEY with your actual API key):
+## Agent Workflow:
 
-```bash
-echo "GOOGLE_GENAI_USE_VERTEXAI=FALSE" >> app/.env
-echo "GOOGLE_API_KEY=YOUR_AI_STUDIO_API_KEY" >> app/.env
+The backend agent/agents, defined in `app/agent.py`, follows a workflow as described below:
+
+### Step 1: meal_prep_agent 
+
+***meal_prep_agent's Tools:***
+
+    Agent Tools:
+      * recipe_idea_agent
+      * recipe_link_agent
+      * planning_agent
+    Custom Tool:
+      check_links_are_valid
+
+When the main agent receives a request from the user, it will start the process of generating a meal plan. If the agent hasn't received dietary restrictions, it will ask the user. Sessions and conversation history are stored using ADK's InMemorySessionService and InMemoryMemoryService, allowing the agent to retain context across the conversation and utilize the tools at its disposal to create a meal plan.
+
+The first Agent Tool called is the next step in the flow:
+
+### 2: recipe_idea_agent
+
+***recipe_idea_agent's Tools:***
+
+    ADK Built-in Tool:
+      google_search
+
+The meal_prep_agent calls the recipe_idea_agent first. ADK provides a built in google_search tool to perform an internet search and report back on its findings. This tool is currently incompatible with other tool implementations, so a separate agent is used. The recipe_idea_agent finds inspiration for breakfast, lunch, and dinner ideas, then replies to the meal_prep_agent with its findings. 
+
+The next step is the second tool in the meal_prep_agent's tool list:
+
+### 3: recipe_link_agent
+
+***recipe_link_agent's Tools:***
+
+    ADK Built-in Tool:
+      google_search
+
+The meal_prep_agent gathers the meal ideas from the recipe_idea_agent and requests links from the recipe_link_agent using the same google_search built-in adk tool. This agent finds recipes from various sites across the web to provide the user with recipes they can make as part of their weekly meal plan. 
+
+Then, the meal_prep_agent checks this agent's work in the next step of the flow:
+
+### 4: check_links_are_valid
+
+***Custom Function***
+
+The links provided by the recipe_link_agent are sometimes broken. To ensure the plan contains real recipes with valid sources, a custom python function is called by the meal_plan_agent to validate the recipe links provided.
+
+The function uses urllib to validate the url format, whether it's a "vertexaisearch" URL (which isn't accessible to the user), or that the link returns a 404 HTTP error code. If none of these are true, it passes the tool check and the agent will note that it is a valid recipe & idea to add to the plan. If the link fails the check, the agent notes that and continues checking the links from the recipe_link_agent.
+
+Once all links have been validated, the meal_prep_agent circles back to the recipe_link_agent to request more recipes based on the ideas from the recipe_idea_agent. It then validates the new links, working in this pattern until all links are valid.
+
+Finally, the meal_prep_agent calls a final tool:
+
+### 5: planning_agent
+
+***planning_agent's Tools:***
+
+    Custom Tool:
+      get_day_of_week
+
+The meal_prep_agent uses the planning_agent Agent tool to generate an organized plan for breakfast, lunch, and dinner (unless specified) based on the day of the week in the timezone specified in the application's environment variables. It uses the get_day_of_the_week function to achieve this, getting the current date time in the default time zone (in the deployed application, this is America/New_York) and returning the string of the current day of the week. 
+
+The planning_agent then organizes the ideas and their respective links in a schedule format, specifying the day of the week, the meal, and the recipe. The result is provided back to the meal_prep_agent.
+
+### 6: meal_prep_agent
+
+The meal_prep_agent then provides the result from the planning agent (in markdown format) to the user. This concludes the agent flow!
+
+
+## Frontend
+
+To provide a useful plan, the agent is hosted on Firebase with an Angular based frontend.
+
+Below is the file structure:
+
+```
+frontend/meal-prep-agent/
+├── src/
+│   ├── app/
+│   │   ├── features/
+│   │   │   ├── chat-window/      # Chat interface component
+│   │   │   ├── recipe-plan/      # Recipe plan display & PDF export
+│   │   │   │   └── recipe-plan-test/  # Test component for PDF generation
+│   │   │   └── main-view/        # Main view container
+│   │   ├── app.ts                # Main app component
+│   │   ├── app.config.ts         # App configuration
+│   │   └── app.routes.ts         # Routing configuration
+│   ├── environments/
+│   │   ├── environment.ts        # Development config
+│   │   └── environment.prod.ts   # Production config (Cloud Run URL)
+│   ├── main.ts                   # Entry point
+│   ├── main.server.ts            # SSR entry point
+│   └── styles.css                # Global styles
+├── public/                       # Static assets
+├── package.json                  # Node dependencies
+├── angular.json                  # Angular CLI configuration
+├── firebase.json                 # Firebase Hosting config
+├── deploy-firebase.bat/.sh       # Firebase deployment scripts
+└── DEPLOYMENT.md                 # Deployment instructions
 ```
 
-#### Step 3: Install & Run
-From the `gemini-fullstack` directory, install dependencies and start the servers.
+### Chat window component
 
-```bash
-make install && make dev
-```
-Your agent is now running at `http://localhost:5173`.
+The chat window component is where the frontend interacts with the adk api server (hosted on Cloud Run). When the user sends a message in the chat window, it checks if a session exists (and if not, creates one). Then it runs the agent with the user's message, and awaits the response from the agent. A loading message appears while the agent is thinking to provide visual feedback to the user, as in the current implementation the plan generation can take up to 10 minutes.
 
----
+### Recipe plan component
 
-### B. Google Cloud Vertex AI
+The recipe plan component is where the final meal plan is displayed once the agent returns it. The component only displays responses with links included, as that is always the final response given by the backend / agent. The frontend also has a button to download the plan as a pdf. The component generates a pdf using jsPDF to compile the plan into a pdf file format, for easy saving and future reference for the plan the agent generates.
 
-You'll also need: **[Google Cloud SDK](https://cloud.google.com/sdk/docs/install)** and a **Google Cloud Project** with the **Vertex AI API** enabled.
+This component also has a test component, accessible at the /test endpoint, to test how the pdf generation works without calling the backend agent.
 
-#### Step 1: Create Project from Template
-This command uses the [Agent Starter Pack](https://goo.gle/agent-starter-pack) to create a new directory (`my-fullstack-agent`) with all the necessary code.
-```bash
-# Create and activate a virtual environment
-python -m venv .venv && source .venv/bin/activate # On Windows: .venv\Scripts\activate
+### Main view component
 
-# Install the starter pack and create your project
-pip install --upgrade agent-starter-pack
-agent-starter-pack create my-fullstack-agent -a adk@gemini-fullstack
-```
-<details>
-<summary>⚡️ Alternative: Using uv</summary>
-
-If you have [`uv`](https://github.com/astral-sh/uv) installed, you can create and set up your project with a single command:
-```bash
-uvx agent-starter-pack create my-fullstack-agent -a adk@gemini-fullstack
-```
-This command handles creating the project without needing to pre-install the package into a virtual environment.
-</details>
-
-You'll be prompted to select a deployment option (Agent Engine or Cloud Run) and verify your Google Cloud credentials.
-
-#### Step 2: Install & Run
-Navigate into your **newly created project folder**, then install dependencies and start the servers.
-```bash
-cd my-fullstack-agent && make install && make dev
-```
-Your agent is now running at `http://localhost:5173`.
-
-## ☁️ Cloud Deployment
-> **Note:** The cloud deployment instructions below apply only if you chose the **Google Cloud Vertex AI** option.
-
-You can quickly deploy your agent to a **development environment** on Google Cloud. You can deploy your latest code at any time with:
-
-```bash
-# Replace YOUR_DEV_PROJECT_ID with your actual Google Cloud Project ID
-gcloud config set project YOUR_DEV_PROJECT_ID
-make backend
-```
-
-For robust, **production-ready deployments** with automated CI/CD, please follow the detailed instructions in the **[Agent Starter Pack Development Guide](https://googlecloudplatform.github.io/agent-starter-pack/guide/development-guide.html#b-production-ready-deployment-with-ci-cd)**.
-## Agent Details
-
-| Attribute | Description |
-| :--- | :--- |
-| **Interaction Type** | Workflow |
-| **Complexity** | Advanced |
-| **Agent Type** | Multi Agent |
-| **Components** | Multi-agent, Function calling, Web search, React frontend, Human-in-the-Loop |
-| **Vertical** | Horizontal |
-
-## How the Agent Thinks: A Two-Phase Workflow
-
-The backend agent, defined in `app/agent.py`, follows a sophisticated workflow to move from a simple topic to a fully-researched report.
-
-The following diagram illustrates the agent's architecture and workflow:
-
-![ADK Gemini Fullstack Architecture](https://github.com/GoogleCloudPlatform/agent-starter-pack/blob/main/docs/images/adk_gemini_fullstack_architecture.png?raw=true)
-
-This process is broken into two main phases:
-
-### Phase 1: Plan & Refine (Human-in-the-Loop)
-
-This is the collaborative brainstorming phase.
-
-1.  **You provide a research topic.**
-2.  The agent generates a high-level research plan with several key goals (e.g., "Analyze the market impact," "Identify key competitors").
-3.  The plan is presented to **you**. You can approve it, or chat with the agent to add, remove, or change goals until you're satisfied. Nothing happens without your explicit approval.
-
-The plan will contains following tags as a signal to downstream agents,
-  - Research Plan Tags
-
-    - [RESEARCH]: Guides info gathering via search.
-    - [DELIVERABLE]: Guides creation of final outputs (e.g., tables, reports).
-  
-  - Plan Refinement Tags
-
-    - [MODIFIED]: Goal was updated.
-    - [NEW]: New goal added per user.
-    - [IMPLIED]: Deliverable proactively added by AI.
-
-### Phase 2: Execute Autonomous Research
-
-Once you approve the plan, the agent's `research_pipeline` takes over and works autonomously.
-
-1.  **Outlining:** It first converts the approved plan into a structured report outline (like a table of contents).
-2.  **Iterative Research & Critique Loop:** For each section of the outline, it repeats a cycle:
-    *   **Search:** It performs web searches to gather information.
-    *   **Critique:** A "critic" model evaluates the findings for gaps or weaknesses.
-    *   **Refine:** If the critique finds weaknesses, the agent generates more specific follow-up questions and searches again. This loop continues until the research meets a high-quality bar.
-3.  **Compose Final Report:** After the research loop is complete, a final agent takes all the verified findings and writes a polished report, automatically adding inline citations that link back to the original sources.
-
-You can edit key parameters (Gemini models, research loop iterations) in the `ResearchConfiguration` dataclass within `app/config.py`.
-
-## Customization
-
-You can modify and extend this agent's behavior by editing the backend code.
-
-*   **Modifying Agent Logic:** The core logic for all sub-agents (planner, researcher, critic, composer) is defined in `app/agent.py`. You can change the prompts, tools, or reasoning steps by modifying the agent definitions here.
-*   **Adjusting Research Parameters:** Key parameters, such as the Gemini models used or the number of research loop iterations, can be adjusted in the `ResearchConfiguration` dataclass within `app/config.py`.
-*   **Syncing with Frontend:** The frontend UI integrates with the backend through specific agent names that process outputs differently (e.g., research findings vs. final report), update the activity timeline with appropriate titles/icons, and track research metrics like website counts. 
-    Important agent names include:
-    * `section_researcher` & `enhanced_search_executor` - track websites consulted
-    * `report_composer_with_citations` - processes final report
-    * `interactive_planner_agent` - updates AI messages during planning
-    * `plan_generator` and `section_planner` - used for timeline labels
-    
-    If you rename agents in `app/agent.py`, you must update their names in the frontend code (`/ui`) to maintain functionality.
+The main view component simply displays both the chat window component and the recipe plan component on a main page.
 
 
-### Example Interaction
-
-> **User:** A report on the last Google I/O
->
-> **Agent:** Here's a research plan for a report on the last Google I/O:
->
-> *   Analyze the key announcements and product updates made at Google I/O 2025.
-> *   Identify the central themes and strategic directions emphasized by Google during the event, particularly concerning AI, Android, and other emerging technologies like Android XR.
-> *   Investigate the reception and industry impact of the major product unveilings and feature enhancements.
-> *   Examine any significant shifts or continuities in Google's developer strategy as presented at the conference.
-> *   Assess the implications of the announced technologies and initiatives for developers, consumers, and the broader tech landscape.
->
-> Does this plan look good, or would you like to refine it further? Once approved, I can initiate the research.
->
-> **User:** Looks good!
-> *(The agent proceeds to autonomously execute the research, showing its progress on the timeline.)*
->
-> **Agent:**
-> 
-> Google I/O 2025: Key Announcements and Highlights
-> ....
-
-## Troubleshooting
-
-If you encounter issues while setting up or running this agent, here are some resources to help you troubleshoot:
-- [ADK Documentation](https://google.github.io/adk-docs/): Comprehensive documentation for the Agent Development Kit
-- [Vertex AI Authentication Guide](https://cloud.google.com/vertex-ai/docs/authentication): Detailed instructions for setting up authentication
-- [Agent Starter Pack Troubleshooting](https://googlecloudplatform.github.io/agent-starter-pack/guide/troubleshooting.html): Common issues
-
-
-## 🛠️ Technologies Used
+## Technologies Used
 
 ### Backend
-*   [**Agent Development Kit (ADK)**](https://github.com/google/adk-python): The core framework for building the stateful, multi-turn agent.
-*   [**FastAPI**](https://fastapi.tiangolo.com/): High-performance web framework for the backend API.
-*   [**Google Gemini**](https://cloud.google.com/vertex-ai/generative-ai/docs): Used for planning, reasoning, search query generation, and final synthesis.
+*   [**Agent Development Kit (ADK)**](https://github.com/google/adk-python): The core framework for building the stateful, multi-turn agent (includes FastAPI).
+*   [**Google Gemini 2.5 Flash**](https://cloud.google.com/vertex-ai/generative-ai/docs): LLM used for all agents - planning, reasoning, search query generation, and synthesis.
+*   [**Vertex AI**](https://cloud.google.com/vertex-ai): Google Cloud's AI platform for accessing Gemini models.
+*   [**Google Cloud Run**](https://cloud.google.com/run): For hosting the backend in a containerized app.
+*   [**Docker**](https://www.docker.com/): For containerizing the application for deployment.
+*   [**Python 3.11**](https://www.python.org/): Backend programming language.
 
 ### Frontend
-*   [**React**](https://reactjs.org/) (with [Vite](https://vitejs.dev/)): For building the interactive user interface.
-*   [**Tailwind CSS**](https://tailwindcss.com/): For utility-first styling.
-*   [**Shadcn UI**](https://ui.shadcn.com/): A set of beautifully designed, accessible components.
-
-## Disclaimer
-
-This agent sample is provided for illustrative purposes only. It serves as a basic example of an agent and a foundational starting point for individuals or teams to develop their own agents.
-
-Users are solely responsible for any further development, testing, security hardening, and deployment of agents based on this sample. We recommend thorough review, testing, and the implementation of appropriate safeguards before using any derived agent in a live or critical system.
+*   [**Angular 20**](https://angular.dev/): For building the interactive user interface.
+*   [**PrimeNG**](https://primeng.org/): UI component library for Angular.
+*   [**Tailwind CSS**](https://tailwindcss.com/): For utility-first styling with PrimeUI integration.
+*   [**jsPDF**](https://github.com/parallax/jsPDF): For generating downloadable PDF meal plans.
+*   [**Firebase Hosting**](https://firebase.google.com/): For hosting the frontend application.

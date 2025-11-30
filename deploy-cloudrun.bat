@@ -21,7 +21,7 @@ gcloud run deploy meal-prep-backend ^
   --port 8080 ^
   --memory 2Gi ^
   --timeout 600 ^
-  --set-env-vars "GOOGLE_GENAI_USE_VERTEXAI=True,GOOGLE_CLOUD_PROJECT=capstone-478122,GOOGLE_CLOUD_LOCATION=us-central1,GOOGLE_CLOUD_AGENT_ENGINE_ID=4566241003828150272,GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=True,TIME_ZONE=America/New_York"
+  --set-env-vars "GOOGLE_GENAI_USE_VERTEXAI=True,GOOGLE_CLOUD_PROJECT=capstone-478122,GOOGLE_CLOUD_LOCATION=us-central1,TIME_ZONE=America/New_York"
 
 echo Deployment complete!
 echo Update your frontend environment.prod.ts with the Cloud Run URL
