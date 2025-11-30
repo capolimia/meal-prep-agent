@@ -23,5 +23,5 @@ ENV PYTHONUNBUFFERED=1
 # Expose port
 EXPOSE 8080
 
-# Run ADK API server with CORS
+# Run ADK API server with CORS for Firebase Hosting
 CMD ["uv", "run", "adk", "api_server", "app", "--host", "0.0.0.0", "--port", "8080", "--allow_origins=*"]

@@ -60,7 +60,7 @@ export class ChatWindow implements OnDestroy {
     return data;
   }
 
-  //handles the sending of messages to the local backend.
+  //handles the sending of messages to the backend with streaming.
   async handleSendMessage() {
     if (!this.currentMessage.trim()) return;
     
@@ -70,29 +70,31 @@ export class ChatWindow implements OnDestroy {
     // Add user message to chat
     this.messages.push({ text: userMessage, isUser: true });
     
+    // Add placeholder for AI response that will be updated via streaming
+    const aiMessageIndex = this.messages.length;
+    this.messages.push({ text: '', isUser: false });
+    
     this.isLoading = true;
     this.aiResponse = '';
     this.loadingMessageIndex = 0;
     this.startLoadingMessageCycle();
     
     try {
-      //try to send the message
+      //try to send the message with streaming updates
       await this.sendMessageToApi(userMessage, (response) => {
         this.aiResponse = response;
+        // Update the AI message in real-time as stream comes in
+        this.messages[aiMessageIndex].text = response;
       });
       
-      // Add complete AI response to chat if present
-      if (this.aiResponse) {
-        this.messages.push({ text: this.aiResponse, isUser: false });
-        // Emit the response to update the recipe plan component if it is a final plan (if any recipe links are present)
-        if (this.aiResponse.includes('.com')) {
-          this.recipePlanGenerated.emit(this.aiResponse);
-        }
+      // Emit the final response to update the recipe plan component if it is a final plan
+      if (this.aiResponse && this.aiResponse.includes('.com')) {
+        this.recipePlanGenerated.emit(this.aiResponse);
       }
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMsg = `Error: ${error instanceof Error ? error.message : 'Failed to send message'}`;
-      this.messages.push({ text: errorMsg, isUser: false });
+      this.messages[aiMessageIndex].text = errorMsg;
     } finally {
       //stop the loading messages at the end of the request to the backend
       this.stopLoadingMessageCycle();
@@ -120,7 +122,7 @@ export class ChatWindow implements OnDestroy {
     this.stopLoadingMessageCycle();
   }
 
-  //Handles sending the message to the backend.
+  //Handles sending the message to the backend using SSE streaming.
   private async sendMessageToApi(query: string, onResponse: (text: string) => void) {
     //if no session, create one.
     if (!this.sessionId) {
@@ -143,7 +145,7 @@ export class ChatWindow implements OnDestroy {
       console.log('Session created successfully');
     }
 
-    console.log('Sending message:', {
+    console.log('Sending message with streaming:', {
       appName: 'app',
       userId: this.userId,
       sessionId: this.sessionId,
@@ -162,11 +164,12 @@ export class ChatWindow implements OnDestroy {
 
     console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
-    //send to the backend using ADK /run endpoint
-    const response = await fetch(`${this.baseUrl}/run`, {
+    //send to the backend using ADK /run_sse endpoint for SSE
+    const response = await fetch(`${this.baseUrl}/run_sse`, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
       },
       body: JSON.stringify(requestBody)
     });
@@ -180,36 +183,59 @@ export class ChatWindow implements OnDestroy {
       throw new Error(`API error: ${response.status} - ${errorText}`);
     }
 
-    //await and log the response - /run returns array of events
-    const events = await response.json();
-    console.log('Response events:', events);
+    // Process SSE stream
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
 
-    if (!Array.isArray(events)) {
-      throw new Error('Expected array of events from /run endpoint');
+    if (!reader) {
+      throw new Error('No response body reader available');
     }
 
-    // Find the last event with agent text response
-    let text = '';
-    for (let i = events.length - 1; i >= 0; i--) {
-      const event = events[i];
-      if (event.content?.parts) {
-        for (const part of event.content.parts) {
-          if (part.text) {
-            text = part.text;
-            break;
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) {
+        console.log('Stream complete');
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.substring(6);
+          
+          if (data === '[DONE]') {
+            console.log('Received [DONE] signal');
+            continue;
+          }
+
+          try {
+            const event = JSON.parse(data);
+            console.log('Received event:', event);
+
+            // Extract text from event
+            if (event.content?.parts) {
+              for (const part of event.content.parts) {
+                if (part.text) {
+                  fullText = part.text;
+                  onResponse(fullText);
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to parse SSE data:', data, e);
           }
         }
-        if (text) break;
       }
     }
-    
-    console.log('Extracted text:', text);
-    
-    if (text) {
-      onResponse(text);
-    } else {
-      console.warn('No text found in events. Full response:', JSON.stringify(events, null, 2));
-      throw new Error('No text content in response');
+
+    if (!fullText) {
+      throw new Error('No text content received from stream');
     }
   }
 }
