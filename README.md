@@ -24,8 +24,8 @@ Local setup instructions are not included to protect private API keys and creden
 
 ```
 app/
-├── agent.py                  # Main agent and tool definitions (meal_prep_agent, recipe_idea_agent, recipe_link_agent, planning_agent, get_day_of_week, check_links_are_valid)
-
+├── agent.py                  # Main agent and tool definitions (meal_prep_agent, recipe_idea_agent, recipe_link_agent,
+|                                planning_agent, get_day_of_week, check_links_are_valid)
 └── .env                      # Environment variables (not in git)
 ```
 
