@@ -18,38 +18,48 @@
 
 ### Services
 
-- **Vertex AI Memory Bank Service** - Long-term memory storage
-- **Google Search** - Recipe search tool
-- **Agent Engine** - Deployment target for production
+- **In-Memory Session Service** - ADK's default session storage
+- **In-Memory Memory Service** - ADK's default memory service for storing conversation history (used by `auto_save_session_to_memory_callback`)
+- **Google Search** - Built-in ADK tool for recipe search
+- **Cloud Logging** - Google Cloud logging (configured in agent_engine_app.py but only used if deployed to Agent Engine)
+- **Cloud Trace** - OpenTelemetry tracing (configured in agent_engine_app.py but only used if deployed to Agent Engine)
 
 ## Frontend
 
-- **Framework**: Angular 19
-- **Language**: TypeScript 5.7
-- **UI Components**: PrimeNG
-- **Build Tool**: Angular CLI
-- **Linting**: ESLint
+- **Framework**: Angular 20.3
+- **Language**: TypeScript 5.9
+- **UI Components**: PrimeNG 20.3
+- **Styling**: Tailwind CSS 4.1 with PrimeUI plugin
+- **Build Tool**: Angular CLI 20.3
+- **SSR**: Angular SSR with Express 5.1
 
 ### Key Dependencies
 
-- `primeng` - UI component library
+- `primeng` - UI component library (20.3.0)
+- `@primeuix/themes` - PrimeNG theming system
+- `tailwindcss` & `tailwindcss-primeui` - Utility-first CSS framework with PrimeUI integration
 - `uuid` - Session ID generation
+- `jspdf` - PDF generation for meal plans
+- `html2canvas` - HTML to canvas conversion for PDF export
+- `marked` - Markdown parsing
+- `rxjs` - Reactive programming
 - Direct HTTP fetch for backend communication
 
 ## Development Tools
 
-- **Testing**: pytest with pytest-asyncio
-- **Linting**: ruff, mypy, codespell
+- **Testing**: pytest 8.4.2 with pytest-asyncio 1.2.0
+- **Linting**: ruff 0.4.6+, mypy 1.18.2, codespell 2.4.1
 - **Type Checking**: mypy with strict configuration
-- **Notebooks**: Jupyter for prototyping
+- **Package Management**: uv 0.6.12 (preferred) or pip
+- **Frontend Testing**: Karma with Jasmine
 
 ## Common Commands
 
 ```bash
-# Install dependencies
+# Install dependencies (installs uv if not present, then syncs Python and npm packages)
 make install
 
-# Run development servers (backend + frontend)
+# Run development servers (backend + frontend) - Windows only
 make dev
 
 # Run backend only
@@ -61,17 +71,42 @@ make dev-frontend
 # Launch ADK playground (Streamlit UI)
 make playground
 
-# Run tests
+# Run tests (unit and integration)
 make test
 
-# Run linting
+# Run linting (codespell, ruff, mypy)
 make lint
 
-# Deploy to Agent Engine
+# Deploy backend to Agent Engine
 make deploy
 
-# Setup dev environment infrastructure
+# Setup dev environment infrastructure (Terraform)
 make setup-dev-env
+
+# Register Gemini Enterprise
+make register-gemini-enterprise
+```
+
+### Frontend-Specific Commands
+
+```bash
+# Navigate to frontend directory
+cd frontend/meal-prep-agent
+
+# Start development server
+ng serve
+
+# Build for production
+ng build
+
+# Run tests
+ng test
+
+# Deploy to Firebase (Windows)
+deploy-firebase.bat
+
+# Deploy to Firebase (Unix)
+./deploy-firebase.sh
 ```
 
 ## Environment Configuration
@@ -93,6 +128,6 @@ GOOGLE_CLOUD_AGENT_ENGINE_ID=your_agent_engine_id
 ## Deployment Targets
 
 - **Local Development**: `adk api_server` + Angular dev server
-- **Cloud Run**: Primary production deployment (containerized FastAPI backend)
+- **Cloud Run**: Primary production deployment (containerized FastAPI backend via Docker)
 - **Firebase Hosting**: Frontend deployment target
-- **Agent Engine**: Alternative Vertex AI managed service deployment (not currently used)
+- **Agent Engine**: Code includes Agent Engine wrapper (`agent_engine_app.py`) but not currently deployed to Agent Engine
